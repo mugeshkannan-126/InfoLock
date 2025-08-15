@@ -30,6 +30,10 @@ public class Document {
     @Column(nullable = false)
     private Long fileSize;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime uploadDate;
