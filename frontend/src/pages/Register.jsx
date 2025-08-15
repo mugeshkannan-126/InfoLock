@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
+import { authAPI } from '../api/api.js'; // Adjust path as needed
 
 const Register = ({ onSwitchToLogin, onClose }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Handle registration logic
-        console.log('Registration submitted:', { name, email, password });
+        setError('');
+
+        try {
+            await authAPI.register(name, email, password);
+            console.log('Registration successful!');
+
+            // Switch to login after successful registration
+            onSwitchToLogin();
+        } catch (err) {
+            setError(err.error || 'Registration failed. Please try again.');
+        }
     };
 
     return (
@@ -19,6 +30,10 @@ const Register = ({ onSwitchToLogin, onClose }) => {
             <p className="text-2xl font-medium m-auto">
                 <span className="text-indigo-500">User</span> Sign Up
             </p>
+
+            {error && (
+                <p className="text-red-500 text-sm">{error}</p>
+            )}
 
             <div className="w-full">
                 <p>Name</p>

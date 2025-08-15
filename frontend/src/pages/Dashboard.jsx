@@ -6,6 +6,7 @@ import DocumentForm from '../components/DocumentForm';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { documentAPI } from '../api/api';
 import { toast } from 'react-toastify';
+import axios from 'axios';  // Add this at the top of your Dashboard.jsx
 
 const Dashboard = () => {
     // ===== State Management =====
@@ -15,6 +16,7 @@ const Dashboard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);  // Upload/Edit modal state
     const [currentDocument, setCurrentDocument] = useState(null); // Document being edited
     const [viewMode, setViewMode] = useState('grid');       // View mode toggle
+    const API_BASE_URL = 'http://localhost:8080/api/documents';  // Adjust if needed
 
     // ===== Helper Functions =====
     // Format file size into KB/MB/GB
@@ -60,8 +62,10 @@ const Dashboard = () => {
                 }));
 
                 setDocuments(formattedDocs);
-                toast.success('Documents loaded successfully');
+                // toast.success('Documents loaded successfully');
             } catch (error) {
+
+
                 console.error('Failed to fetch documents:', error);
                 toast.error(error.message || 'Failed to load documents');
             } finally {
@@ -163,21 +167,19 @@ const Dashboard = () => {
         }
     };
 
-    const handleDownload = async (id, name) => {
+    const handleDownload = async (id, fileName) => {
         try {
-            const blob = await documentAPI.downloadDocument(id);
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', name || `document_${id}`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            await documentAPI.downloadDocument(id, fileName);
             toast.success('Download started');
         } catch (error) {
-            console.error('Error downloading document:', error);
-            toast.error(error.message || 'Failed to download document');
+            console.error('Download failed:', error);
+            toast.error(error.message);
+
+            // If unauthorized, redirect to login
+            if (error.message.includes('permission') || error.message.includes('login')) {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
         }
     };
 

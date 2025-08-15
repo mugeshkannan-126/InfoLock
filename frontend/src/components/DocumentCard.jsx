@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FiEdit2, FiTrash2, FiDownload, FiMoreVertical } from 'react-icons/fi';
+import PropTypes from 'prop-types';
 
 const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const API_BASE_URL = 'http://localhost:8080/api/documents';  // Adjust if needed
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -35,14 +37,15 @@ const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
 
     const formatFileSize = useCallback((bytes) => {
         if (!bytes) return 'Unknown size';
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }, []);
 
     const getFileIconColor = useCallback((type) => {
         const formattedType = formatFileType(type).toLowerCase();
-        switch (formattedType) {
+        switch(formattedType) {
             case 'pdf': return 'bg-red-100 text-red-600';
             case 'doc':
             case 'docx': return 'bg-blue-100 text-blue-600';
@@ -51,13 +54,29 @@ const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
             case 'jpg':
             case 'jpeg':
             case 'png': return 'bg-purple-100 text-purple-600';
+            case 'txt': return 'bg-gray-100 text-gray-600';
+            case 'zip':
+            case 'rar': return 'bg-yellow-100 text-yellow-600';
             default: return 'bg-gray-100 text-gray-600';
         }
     }, [formatFileType]);
 
-    const handleDownloadClick = useCallback(() => {
+    const handleDownloadClick = useCallback((e) => {
+        e?.stopPropagation();
         onDownload(doc.id, doc.fileName || doc.name);
     }, [doc.id, doc.fileName, doc.name, onDownload]);
+
+    const handleEditClick = useCallback((e) => {
+        e?.stopPropagation();
+        onEdit(doc);
+    }, [doc, onEdit]);
+
+    const handleDeleteClick = useCallback((e) => {
+        e?.stopPropagation();
+        if (window.confirm(`Are you sure you want to delete "${doc.fileName || doc.name}"?`)) {
+            onDelete(doc.id);
+        }
+    }, [doc.id, doc.fileName, doc.name, onDelete]);
 
     return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -87,31 +106,19 @@ const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
                             <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                                 <div className="py-1">
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDropdownOpen(false);
-                                            onEdit(doc);
-                                        }}
+                                        onClick={handleEditClick}
                                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                     >
                                         <FiEdit2 className="mr-2" /> Edit
                                     </button>
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDropdownOpen(false);
-                                            handleDownloadClick();
-                                        }}
+                                        onClick={handleDownloadClick}
                                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                     >
                                         <FiDownload className="mr-2" /> Download
                                     </button>
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDropdownOpen(false);
-                                            onDelete(doc.id);
-                                        }}
+                                        onClick={handleDeleteClick}
                                         className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
                                     >
                                         <FiTrash2 className="mr-2" /> Delete
@@ -123,8 +130,8 @@ const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
                 </div>
 
                 <div className="mt-4">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {doc.fileName || 'Untitled Document'}
+                    <h3 className="text-lg font-semibold text-gray-900 truncate" title={doc.fileName || doc.name}>
+                        {doc.fileName || doc.name || 'Untitled Document'}
                     </h3>
 
                     <p className="text-sm text-gray-500 mt-1">
@@ -149,12 +156,28 @@ const DocumentCard = ({ document: doc, onEdit, onDelete, onDownload }) => {
                 <button
                     onClick={handleDownloadClick}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    aria-label={`Download ${doc.fileName || doc.name}`}
                 >
                     <FiDownload className="mr-1" /> Download
                 </button>
             </div>
         </div>
     );
+};
+
+DocumentCard.propTypes = {
+    document: PropTypes.shape({
+        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+        fileName: PropTypes.string,
+        name: PropTypes.string,
+        fileType: PropTypes.string,
+        category: PropTypes.string,
+        fileSize: PropTypes.number,
+        uploadDate: PropTypes.string,
+    }).isRequired,
+    onEdit: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onDownload: PropTypes.func.isRequired,
 };
 
 export default React.memo(DocumentCard);
