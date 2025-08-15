@@ -1,91 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import { FiUpload, FiSearch, FiTrash2, FiEdit2, FiDownload, FiGrid, FiList } from 'react-icons/fi';
-import DocumentCard from '../components/DocumentCard';
-import DocumentList from '../components/DocumentList';
-import DocumentForm from '../components/DocumentForm';
-import EmptyState from '../components/EmptyState';
-import LoadingSpinner from '../components/LoadingSpinner';
+import DocumentCard from '../components/DocumentCard.jsx';
+import DocumentList from '../components/DocumentList.jsx';
+import DocumentForm from '../components/DocumentForm.jsx';
+import EmptyState from '../components/EmptyState.jsx';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { documentAPI } from '../api/api.js';
 
 const Documents = () => {
-    // State management
     const [documents, setDocuments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('grid');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentDocument, setCurrentDocument] = useState(null);
 
-    // Fetch documents (mock data for now)
     useEffect(() => {
         const fetchDocuments = async () => {
             try {
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 800));
-
-                const mockData = [
-                    {
-                        id: 'doc-001',
-                        name: 'Passport.pdf',
-                        type: 'PDF',
-                        size: '2.4 MB',
-                        uploaded: '2023-10-15',
-                        category: 'Personal',
-                        tags: ['id', 'travel']
-                    },
-                    {
-                        id: 'doc-002',
-                        name: 'Resume.docx',
-                        type: 'DOCX',
-                        size: '1.2 MB',
-                        uploaded: '2023-11-20',
-                        category: 'Professional',
-                        tags: ['job', 'career']
-                    },
-                    {
-                        id: 'doc-003',
-                        name: 'House Contract.pdf',
-                        type: 'PDF',
-                        size: '5.7 MB',
-                        uploaded: '2023-09-05',
-                        category: 'Legal',
-                        tags: ['property', 'agreement']
-                    }
-                ];
-
-                setDocuments(mockData);
+                const data = await documentAPI.getAllDocuments();
+                setDocuments(data);
             } catch (error) {
                 console.error("Failed to fetch documents:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchDocuments();
     }, []);
 
-    // Filter documents based on search
     const filteredDocuments = documents.filter(doc =>
         doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        (doc.tags && doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())))
     );
 
-    // Document actions
-    const handleUpload = (newDoc) => {
-        setDocuments([{ ...newDoc, id: `doc-${Date.now()}` }, ...documents]);
-        setIsModalOpen(false);
+    const handleUpload = async (newDoc, file) => {
+        try {
+            const uploadedDoc = await documentAPI.uploadDocument(file, newDoc.category, newDoc.name);
+            setDocuments([uploadedDoc, ...documents]);
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Error uploading document:', error);
+        }
     };
 
-    const handleUpdate = (updatedDoc) => {
-        setDocuments(documents.map(doc =>
-            doc.id === updatedDoc.id ? updatedDoc : doc
-        ));
-        setIsModalOpen(false);
-        setCurrentDocument(null);
+    const handleUpdate = async (updatedDoc, file) => {
+        try {
+            await documentAPI.updateDocument(updatedDoc.id, file, updatedDoc.category);
+            setDocuments(documents.map(doc =>
+                doc.id === updatedDoc.id ? {
+                    ...doc,
+                    name: updatedDoc.name,
+                    category: updatedDoc.category,
+                    ...(file && {
+                        type: file.name.split('.').pop().toUpperCase(),
+                        size: (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+                    })
+                } : doc
+            ));
+            setIsModalOpen(false);
+            setCurrentDocument(null);
+        } catch (error) {
+            console.error('Error updating document:', error);
+        }
     };
 
-    const handleDelete = (id) => {
-        setDocuments(documents.filter(doc => doc.id !== id));
+    const handleDelete = async (id) => {
+        try {
+            await documentAPI.deleteDocument(id);
+            setDocuments(documents.filter(doc => doc.id !== id));
+        } catch (error) {
+            console.error('Error deleting document:', error);
+        }
+    };
+
+    const handleDownload = async (id, name) => {
+        try {
+            const blob = await documentAPI.downloadDocument(id);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', name || `document_${id}`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading document:', error);
+        }
     };
 
     if (isLoading) {
@@ -95,7 +98,6 @@ const Documents = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-                {/* Page Header */}
                 <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">My Documents</h1>
@@ -103,9 +105,7 @@ const Documents = () => {
                             {documents.length} documents • {filteredDocuments.length} matching search
                         </p>
                     </div>
-
                     <div className="flex flex-col sm:flex-row gap-3">
-                        {/* Search Bar */}
                         <div className="relative flex-grow max-w-md">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <FiSearch className="text-gray-400" />
@@ -118,8 +118,6 @@ const Documents = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-
-                        {/* Upload Button */}
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -130,7 +128,6 @@ const Documents = () => {
                     </div>
                 </div>
 
-                {/* View Toggle */}
                 <div className="mb-6 flex justify-end">
                     <div className="inline-flex rounded-md shadow-sm">
                         <button
@@ -148,7 +145,6 @@ const Documents = () => {
                     </div>
                 </div>
 
-                {/* Documents Display */}
                 {filteredDocuments.length === 0 ? (
                     <EmptyState
                         onUpload={() => setIsModalOpen(true)}
@@ -165,6 +161,7 @@ const Documents = () => {
                                     setIsModalOpen(true);
                                 }}
                                 onDelete={() => handleDelete(doc.id)}
+                                onDownload={() => handleDownload(doc.id, doc.name)}
                             />
                         ))}
                     </div>
@@ -176,10 +173,10 @@ const Documents = () => {
                             setIsModalOpen(true);
                         }}
                         onDelete={handleDelete}
+                        onDownload={handleDownload}
                     />
                 )}
 
-                {/* Document Form Modal */}
                 <DocumentForm
                     isOpen={isModalOpen}
                     onClose={() => {
