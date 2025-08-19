@@ -1,7 +1,6 @@
 package in.example.infolock.demo.dto;
 
 import lombok.*;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -12,6 +11,5 @@ public class DocumentDTO {
     private String fileName;
     private String fileType;
     private String category;
-    private Long fileSize;
-    private LocalDateTime uploadDate;
 }
+

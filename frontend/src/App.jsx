@@ -1,4 +1,38 @@
-
+// import React, { useState } from "react";
+// import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// import Navbar from "./components/Navbar";
+// import Home from "./pages/Home";
+// import Login from "./pages/Login";
+// import Dashboard from "./pages/Dashboard";
+// import Footer from "./components/Footer";
+// import Documents from "./pages/Documents";
+//
+// export default function App() {
+//     const [isLoginOpen, setIsLoginOpen] = useState(false);
+//
+//     return (
+//         <Router>
+//             <div className={`min-h-screen flex flex-col ${isLoginOpen ? 'overflow-hidden' : ''}`}>
+//                 {/* Blur wrapper for navbar and content when login is open */}
+//                 <div className={`flex-grow ${isLoginOpen ? 'filter blur-sm' : ''}`}>
+//                     <Navbar onLoginClick={() => setIsLoginOpen(true)} />
+//                     <Routes>
+//                         <Route path="/" element={<Home />} />
+//                         <Route path="/dashboard" element={<Dashboard />} />
+//                         <Route path="/documents" element={<Documents />} />
+//                     </Routes>
+//                 </div>
+//                 <Footer />
+//             </div>
+//
+//             {/* Login Modal - rendered outside the blur wrapper */}
+//             <Login
+//                 isOpen={isLoginOpen}
+//                 onClose={() => setIsLoginOpen(false)}
+//             />
+//         </Router>
+//     );
+// }
 
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -6,10 +40,9 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Footer from "./components/Footer";
+import Documents from "./pages/Documents";
 import AuthModal from "./pages/AuthModal";
 import ScrollToTop from "./components/ScrollToTop.jsx";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 export default function App() {
     const [authModal, setAuthModal] = useState({
@@ -32,7 +65,6 @@ export default function App() {
     return (
         <Router>
             <ScrollToTop />
-            <ToastContainer position="bottom-right" />
             <div className={`min-h-screen flex flex-col ${authModal.isOpen ? 'overflow-hidden' : ''}`}>
                 {/* Blur wrapper for navbar and content when modal is open */}
                 <div className={`flex-grow transition-all ${authModal.isOpen ? 'filter blur-sm' : ''}`}>
